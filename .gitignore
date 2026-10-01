@@ -1,0 +1,28 @@
+# Python
+venv/
+__pycache__/
+*.pyc
+*.pyo
+.Python
+*.egg-info/
+
+# Environment variables (never commit real secrets)
+.env
+
+# Node / React
+node_modules/
+dist/
+build/
+
+# Editor
+.vscode/
+.DS_Store
+
+# Database
+*.sqlite3
+
+# Logs
+*.log
+
+# Uploaded files (if you store them locally during dev)
+uploads/
