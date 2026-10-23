@@ -15,7 +15,7 @@ function ScoreRing({ score, tone }) {
   }, [score]);
 
   return (
-    <div className="ring" role="img" aria-label={`Completeness score ${score} out of 100`}>
+    <div className="ring" role="img" aria-label={`Quality score ${score} out of 100`}>
       <svg viewBox="0 0 128 128" width="132" height="132" aria-hidden="true">
         <circle className="ring-track" cx="64" cy="64" r={RADIUS} />
         <circle
@@ -32,6 +32,48 @@ function ScoreRing({ score, tone }) {
         <span className="ring-score">{score}</span>
         <span className="ring-of">out of 100</span>
       </div>
+    </div>
+  );
+}
+
+function CriteriaPanel({ criteria, assessedWeight }) {
+  return (
+    <div className="panel criteria">
+      <div className="panel-head">
+        <h3 className="panel-title">How the score is made</h3>
+        <p className="criteria-note">Based on {assessedWeight}% of the full weight. The rest needs extra input.</p>
+      </div>
+      <ul>
+        {criteria.map((c) => {
+          const scored = c.status === "scored";
+          const tone = !scored ? "none" : c.score >= 95 ? "low" : c.score >= 80 ? "medium" : "high";
+          return (
+            <li key={c.key} className={scored ? "" : "is-off"}>
+              <div className="crit-name">
+                <strong>{c.label}</strong>
+                <span className="crit-weight">{c.weight}% weight</span>
+              </div>
+              {scored ? (
+                <div className="cbar">
+                  <div className="cbar-track" aria-hidden="true">
+                    <div className={`cbar-fill sev-${tone}`} style={{ width: `${c.score}%` }} />
+                  </div>
+                  <span className="cbar-value">{c.score.toFixed(1)}</span>
+                </div>
+              ) : (
+                <span className="crit-off">Not assessed</span>
+              )}
+              <p className="crit-detail">
+                {scored
+                  ? c.issues === 0
+                    ? `Nothing wrong in ${formatNumber(c.checked)} values checked.`
+                    : `${formatNumber(c.issues)} of ${formatNumber(c.checked)} values flagged.`
+                  : c.reason}
+              </p>
+            </li>
+          );
+        })}
+      </ul>
     </div>
   );
 }
@@ -73,7 +115,11 @@ export default function Report({ result, isSample }) {
           <div>
             <h2 className={`verdict tone-${a.verdict.tone}`}>{a.verdict.title}</h2>
             <p className="verdict-detail">{a.verdict.detail}</p>
-            <p className="score-note">Score counts missing values only.</p>
+            <p className="score-note">
+              {a.hasCriteria
+                ? `Weighted score from ${a.assessed} of ${a.criteria.length} criteria.`
+                : "Score counts missing values only."}
+            </p>
           </div>
         </div>
 
@@ -103,6 +149,7 @@ export default function Report({ result, isSample }) {
       </div>
 
       <div className="detail-grid">
+        {a.hasCriteria && <CriteriaPanel criteria={a.criteria} assessedWeight={a.assessedWeight} />}
         <div className="panel findings">
           <h3 className="panel-title">What needs attention</h3>
           {a.findings.length === 0 ? (

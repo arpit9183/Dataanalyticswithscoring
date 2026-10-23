@@ -5,6 +5,7 @@ from sqlalchemy.orm import Session
 from app.db import get_db
 from app.models.batch import Batch
 from app.core.profiling import profile_dataframe
+from app.core.scoring import score_dataframe
 
 router = APIRouter()
 
@@ -26,4 +27,4 @@ async def upload_file(file: UploadFile = File(...), db: Session = Depends(get_db
     db.commit()
     db.refresh(batch)
 
-    return {"batch_id": batch.id, "filename": batch.filename, "profiling": result}
+    return {"batch_id": batch.id, "filename": batch.filename, "profiling": result, "scoring": score_dataframe(df)}

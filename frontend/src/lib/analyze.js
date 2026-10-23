@@ -44,6 +44,14 @@ export function analyze(result) {
   let score = cells === 0 ? 0 : Math.round((1 - missing / cells) * 100);
   if (missing > 0 && score === 100) score = 99;
 
+  // Newer backends send a weighted score built from several criteria. Use it when present.
+  const scoring = result?.scoring ?? null;
+  const criteria = scoring?.criteria ?? [];
+  if (scoring && scoring.score !== null && scoring.score !== undefined) {
+    score = Math.round(scoring.score);
+    if (scoring.score < 100 && score === 100) score = 99;
+  }
+
   const findings = [];
   for (const c of columns) {
     if (rows > 0 && c.nullCount === rows) {
@@ -59,12 +67,13 @@ export function analyze(result) {
       findings.push({ column: c.name, severity: "low", text: "has the same value in every row" });
     }
   }
+  findings.push(...criteriaFindings(criteria, rows));
   findings.sort((a, b) => SEVERITY_ORDER[a.severity] - SEVERITY_ORDER[b.severity]);
 
   const hasHigh = findings.some((f) => f.severity === "high");
   const hasMedium = findings.some((f) => f.severity === "medium");
 
-  let verdict = { tone: "good", title: "Looks healthy", detail: "No missing values or constant columns found." };
+  let verdict = { tone: "good", title: "Looks healthy", detail: "No problems found in the criteria we could check." };
   if (rows === 0) {
     verdict = { tone: "bad", title: "No rows found", detail: "The file has column names but no data." };
   } else if (hasHigh) {
@@ -75,7 +84,50 @@ export function analyze(result) {
     verdict = { tone: "good", title: "Mostly healthy", detail: "Only minor issues found." };
   }
 
-  return { rows, columns, cells, missing, score, findings, verdict };
+  const assessed = criteria.filter((c) => c.status === "scored").length;
+  return {
+    rows,
+    columns,
+    cells,
+    missing,
+    score,
+    findings,
+    verdict,
+    criteria,
+    hasCriteria: criteria.length > 0,
+    assessed,
+    assessedWeight: scoring?.assessed_weight ?? 0,
+  };
+}
+
+// Problems found by the extra criteria. Missing values already have their own findings above.
+const CRITERION_TEXT = {
+  validity: (n) => `has ${n} ${n === 1 ? "value" : "values"} that don't fit the rest of the column's type`,
+  consistency: (n) => `has ${n} ${n === 1 ? "value" : "values"} written differently from the usual form, such as capital letters or spaces`,
+  outliers: (n) => `has ${n} unusually high or low ${n === 1 ? "value" : "values"}`,
+};
+
+function criteriaFindings(criteria, rows) {
+  const out = [];
+  for (const c of criteria) {
+    if (c.status !== "scored" || !c.issues) continue;
+    if (c.key === "uniqueness") {
+      out.push({
+        column: "Duplicates",
+        severity: severityOf((c.issues / Math.max(rows, 1)) * 100),
+        text: `${c.issues} ${c.issues === 1 ? "row is an exact copy" : "rows are exact copies"} of another row`,
+      });
+    } else if (CRITERION_TEXT[c.key]) {
+      for (const w of c.worst_columns ?? []) {
+        out.push({
+          column: w.column,
+          severity: severityOf((w.count / Math.max(rows, 1)) * 100),
+          text: CRITERION_TEXT[c.key](w.count),
+        });
+      }
+    }
+  }
+  return out;
 }
 
 function countLabel(findings, severity) {

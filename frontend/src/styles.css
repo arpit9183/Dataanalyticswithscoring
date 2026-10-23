@@ -906,6 +906,60 @@ tbody tr:hover > * {
   font-size: 14px;
 }
 
+/* ---------- Criteria ---------- */
+.criteria {
+  padding: 20px;
+}
+
+.criteria .panel-head {
+  padding: 0;
+  margin-bottom: 8px;
+}
+
+.criteria-note {
+  color: var(--muted);
+  font-size: 14px;
+}
+
+.criteria li {
+  display: grid;
+  grid-template-columns: minmax(0, 220px) minmax(0, 1fr);
+  column-gap: 20px;
+  row-gap: 2px;
+  align-items: center;
+  padding: 12px 0;
+  border-top: 1px solid var(--line);
+}
+
+.criteria li:first-child {
+  border-top: 0;
+}
+
+.crit-name {
+  display: flex;
+  flex-direction: column;
+}
+
+.crit-weight {
+  color: var(--muted);
+  font-size: 13px;
+}
+
+.crit-off {
+  color: var(--muted);
+  font-weight: 600;
+}
+
+.crit-detail {
+  grid-column: 2;
+  color: var(--muted);
+  font-size: 13px;
+}
+
+.criteria li.is-off .crit-name strong {
+  color: var(--muted);
+}
+
 /* ---------- Narrow screens ---------- */
 @media (max-width: 960px) {
   .summary {
@@ -946,6 +1000,12 @@ tbody tr:hover > * {
   }
   .filebar {
     flex-wrap: wrap;
+  }
+  .criteria li {
+    grid-template-columns: minmax(0, 1fr);
+  }
+  .crit-detail {
+    grid-column: 1;
   }
 }
 
